@@ -139,12 +139,12 @@ The script will:
 
 ---
 
-🤝 Contributing
+## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
 
 ---
 
-📄 License
+## 📄 License
 Distributed under the MIT License.
 
 Created by Tinil K Benny
