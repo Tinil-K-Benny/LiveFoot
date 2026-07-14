@@ -140,7 +140,9 @@ The script will:
 ---
 ## Comparison With Google's Live Prediction
 
-<img width="801" height="797" alt="image" src="https://github.com/user-attachments/assets/5d4dd380-ddcc-4591-bb1d-d901fea72d77" />
+<img width="1687" height="753" alt="image" src="https://github.com/user-attachments/assets/73dfeb7a-0cae-4e84-859a-256cd26cc471" />
+<img width="1523" height="736" alt="image (1)" src="https://github.com/user-attachments/assets/5fb7837c-2c09-4994-a11f-e7126a1a856c" />
+<img width="1327" height="457" alt="image (2)" src="https://github.com/user-attachments/assets/0a1ce794-b301-419f-ae7f-afd83baa3db4" />
 
 ---
 
