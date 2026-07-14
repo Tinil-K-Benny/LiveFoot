@@ -37,10 +37,9 @@ graph TD;
     A[External Football API] -->|Raw Data| B(app/api_client.py);
     B --> C(app/collector.py);
     C -->|Aggregated Data| D(app/features.py);
-    D -->|Feature Extraction| E{Machine Learning Model<br>models/model.pkl};
+    D -->|Feature Extraction| E(ML Model: models/model.pkl);
     E -->|Predictions & Stats| F(app/server.py);
-    F -->|REST/WebSockets| G[React Frontend<br>frontend/src/App.jsx];
-'''
+    F -->|REST / WebSockets| G(React Frontend: frontend/src/App.jsx);
 ---
 
 ## ✨ Key Features
@@ -136,3 +135,15 @@ The script will:
 - **Backend API**: Python, Flask, `requests`, SQLite
 - **Frontend UI**: React, Vite, Node.js
 - **Data Providers**: API-Football, The Odds API
+
+---
+
+🤝 Contributing
+Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
+
+---
+
+📄 License
+Distributed under the MIT License.
+
+Created by Tinil K Benny
