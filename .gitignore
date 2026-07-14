@@ -1,0 +1,27 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Project specific data
+data/live.db
+data/*.json
+data/snapshots.csv
+datasets/
+# (If you want to keep models in version control, you can leave models/model.pkl tracked, 
+# otherwise uncomment the line below to ignore them)
+# models/*.pkl
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+.DS_Store
