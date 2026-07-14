@@ -40,7 +40,7 @@ graph TD
     D -->|Feature Extraction| E(ML Model - models/model.pkl)
     E -->|Predictions and Stats| F(app/server.py)
     F -->|REST / WebSockets| G(React Frontend - frontend/src/App.jsx)
-'''
+```
 ---
 
 ## ✨ Key Features
