@@ -28,6 +28,20 @@ A responsive **React** application built with **Vite**.
 - Visualizes the live match timeline, real-time in-play statistics (possession, shots, cards), and live model probabilities.
 
 ---
+## 🏗 High-Level Architecture Diagram
+
+The following diagram illustrates how data flows in real-time from external APIs, through the backend processing and ML layers, and finally to the user interface:
+
+```mermaid
+graph TD;
+    A[External Football API] -->|Raw Data| B(app/api_client.py);
+    B --> C(app/collector.py);
+    C -->|Aggregated Data| D(app/features.py);
+    D -->|Feature Extraction| E{Machine Learning Model<br>models/model.pkl};
+    E -->|Predictions & Stats| F(app/server.py);
+    F -->|REST/WebSockets| G[React Frontend<br>frontend/src/App.jsx];
+'''
+---
 
 ## ✨ Key Features
 
