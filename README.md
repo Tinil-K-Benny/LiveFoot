@@ -33,13 +33,14 @@ A responsive **React** application built with **Vite**.
 The following diagram illustrates how data flows in real-time from external APIs, through the backend processing and ML layers, and finally to the user interface:
 
 ```mermaid
-graph TD;
-    A[External Football API] -->|Raw Data| B(app/api_client.py);
-    B --> C(app/collector.py);
-    C -->|Aggregated Data| D(app/features.py);
-    D -->|Feature Extraction| E(ML Model: models/model.pkl);
-    E -->|Predictions & Stats| F(app/server.py);
-    F -->|REST / WebSockets| G(React Frontend: frontend/src/App.jsx);
+graph TD
+    A[External Football API] -->|Raw Data| B(app/api_client.py)
+    B --> C(app/collector.py)
+    C -->|Aggregated Data| D(app/features.py)
+    D -->|Feature Extraction| E(ML Model - models/model.pkl)
+    E -->|Predictions and Stats| F(app/server.py)
+    F -->|REST / WebSockets| G(React Frontend - frontend/src/App.jsx)
+'''
 ---
 
 ## ✨ Key Features
