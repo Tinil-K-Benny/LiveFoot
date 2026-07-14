@@ -138,6 +138,11 @@ The script will:
 - **Data Providers**: API-Football, The Odds API
 
 ---
+## Comparison With Google's Live Prediction
+
+<img width="801" height="797" alt="image" src="https://github.com/user-attachments/assets/5d4dd380-ddcc-4591-bb1d-d901fea72d77" />
+
+---
 
 ## 🤝 Contributing
 Contributions, issues, and feature requests are welcome! Feel free to check the issues page if you want to contribute.
