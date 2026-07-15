@@ -28,15 +28,31 @@ function Cards({ yellows, reds }) {
   )
 }
 
-function ProbBar({ label, team, value, cls }) {
+function UnifiedProbBar({ probs, homeTeam, awayTeam }) {
+  const homePct = probs.home * 100;
+  const drawPct = probs.draw * 100;
+  const awayPct = probs.away * 100;
+
   return (
-    <div className="bar-row">
-      <div className="bar-head">
-        <span className="bar-label"><span className={`dot ${cls}`} />{label}{team ? ` · ${team}` : ''}</span>
-        <span className="bar-value">{(value * 100).toFixed(1)}%</span>
+    <div className="unified-bar-wrap">
+      <div className="unified-bar-labels">
+        <div className="label-col home">
+          <span className="team-name">{homeTeam}</span>
+          <span className="pct-val">{homePct.toFixed(1)}%</span>
+        </div>
+        <div className="label-col draw">
+          <span className="team-name">Draw</span>
+          <span className="pct-val">{drawPct.toFixed(1)}%</span>
+        </div>
+        <div className="label-col away">
+          <span className="team-name">{awayTeam}</span>
+          <span className="pct-val">{awayPct.toFixed(1)}%</span>
+        </div>
       </div>
-      <div className="bar-track">
-        <div className={`bar-fill ${cls}`} style={{ width: `${value * 100}%` }} />
+      <div className="unified-bar-track">
+        <div className="unified-bar-fill home" style={{ width: `${homePct}%` }} />
+        <div className="unified-bar-fill draw" style={{ width: `${drawPct}%` }} />
+        <div className="unified-bar-fill away" style={{ width: `${awayPct}%` }} />
       </div>
     </div>
   )
@@ -144,7 +160,7 @@ function Stats({ stats }) {
   )
 }
 
-function MatchPanel({ fixtureId }) {
+function MatchPanel({ fixtureId, fixture }) {
   const [data, setData] = useState(null)
   const [err, setErr] = useState(null)
 
@@ -168,13 +184,25 @@ function MatchPanel({ fixtureId }) {
     const started = data.h_goals != null
     return (
       <div className="panel">
+        {fixture && (
+          <div className="panel-league">
+            <img src={fixture.league_logo || fixture.flag} className="panel-league-logo" alt="" onError={hideImg} />
+            <span>{fixture.league}</span>
+          </div>
+        )}
         <div className="scoreboard">
-          <div className="team"><span className="team-name">{data.home}</span></div>
+          <div className="team">
+            {fixture && <img src={fixture.home_logo} className="panel-team-logo" alt="" onError={hideImg} />}
+            <span className="team-name">{data.home}</span>
+          </div>
           <div className="score-mid">
             <span className="score">{started ? `${data.h_goals}–${data.a_goals}` : 'vs'}</span>
             <span className="chip">{data.status === 'NS' ? `${data.kickoff.slice(11, 16)} kick-off` : data.status}</span>
           </div>
-          <div className="team right"><span className="team-name">{data.away}</span></div>
+          <div className="team right">
+            {fixture && <img src={fixture.away_logo} className="panel-team-logo" alt="" onError={hideImg} />}
+            <span className="team-name">{data.away}</span>
+          </div>
         </div>
         {data.probs ? (
           <section className="section">
@@ -187,9 +215,7 @@ function MatchPanel({ fixtureId }) {
                 </div>
               ))}
             </div>
-            <ProbBar label="Home" team={data.home} value={data.probs.home} cls="home" />
-            <ProbBar label="Draw" value={data.probs.draw} cls="draw" />
-            <ProbBar label="Away" team={data.away} value={data.probs.away} cls="away" />
+            <UnifiedProbBar probs={data.probs} homeTeam={data.home} awayTeam={data.away} />
             <p className="muted note">Market-implied probabilities (margin removed). Live model
               predictions start at kick-off.</p>
           </section>
@@ -202,8 +228,15 @@ function MatchPanel({ fixtureId }) {
 
   return (
     <div className="panel">
+      {fixture && (
+        <div className="panel-league">
+          <img src={fixture.league_logo || fixture.flag} className="panel-league-logo" alt="" onError={hideImg} />
+          <span>{fixture.league}</span>
+        </div>
+      )}
       <div className="scoreboard">
         <div className="team">
+          {fixture && <img src={fixture.home_logo} className="panel-team-logo" alt="" onError={hideImg} />}
           <span className="team-name">{data.home}</span>
           <Cards yellows={data.h_yellows} reds={data.h_reds} />
         </div>
@@ -212,6 +245,7 @@ function MatchPanel({ fixtureId }) {
           <StatusChip status={data.status} minute={data.minute} />
         </div>
         <div className="team right">
+          {fixture && <img src={fixture.away_logo} className="panel-team-logo" alt="" onError={hideImg} />}
           <span className="team-name">{data.away}</span>
           <Cards yellows={data.a_yellows} reds={data.a_reds} />
         </div>
@@ -221,9 +255,7 @@ function MatchPanel({ fixtureId }) {
         <>
           <section className="section">
             <h3>Win probability</h3>
-            <ProbBar label="Home" team={data.home} value={data.probs.home} cls="home" />
-            <ProbBar label="Draw" value={data.probs.draw} cls="draw" />
-            <ProbBar label="Away" team={data.away} value={data.probs.away} cls="away" />
+            <UnifiedProbBar probs={data.probs} homeTeam={data.home} awayTeam={data.away} />
           </section>
           <section className="section">
             <h3>Probability over time</h3>
@@ -303,28 +335,30 @@ function TimeCell({ f }) {
   return <span className="row-time done">{FINISHED.has(f.status) ? 'FT' : f.status}</span>
 }
 
-function MatchRow({ f, onSelect }) {
-  const played = f.h_goals != null
+function MatchTile({ f, onSelect }) {
+  const played = f.h_goals != null;
   return (
-    <li>
-      <button type="button" className={`match-row ${LIVE.has(f.status) ? 'is-live' : ''}`}
-              onClick={() => onSelect(f.fixture_id)}
-              aria-label={`${f.home} versus ${f.away}, open match center`}>
+    <button type="button" className="match-tile" onClick={() => onSelect(f.fixture_id)} aria-label={`${f.home} versus ${f.away}`}>
+      <div className="tile-header">
         <TimeCell f={f} />
-        <span className="side home">
-          <span className="row-team">{f.home}</span>
-          <img className="crest" src={f.home_logo} alt="" loading="lazy" onError={hideImg} />
-        </span>
-        <span className={`row-score ${played ? '' : 'tbd'}`}>
-          {played ? `${f.h_goals} – ${f.a_goals}` : '–'}
-        </span>
-        <span className="side away">
-          <img className="crest" src={f.away_logo} alt="" loading="lazy" onError={hideImg} />
-          <span className="row-team">{f.away}</span>
-        </span>
-        <Chevron className="row-go" />
-      </button>
-    </li>
+      </div>
+      <div className="tile-teams">
+        <div className="tile-team-row">
+          <span className="tile-team-name">
+            <img src={f.home_logo} className="tile-logo" alt="" loading="lazy" onError={hideImg} />
+            {f.home}
+          </span>
+          <span className={`tile-team-score ${played ? '' : 'tbd'}`}>{played ? f.h_goals : '-'}</span>
+        </div>
+        <div className="tile-team-row">
+          <span className="tile-team-name">
+            <img src={f.away_logo} className="tile-logo" alt="" loading="lazy" onError={hideImg} />
+            {f.away}
+          </span>
+          <span className={`tile-team-score ${played ? '' : 'tbd'}`}>{played ? f.a_goals : '-'}</span>
+        </div>
+      </div>
+    </button>
   )
 }
 
@@ -339,9 +373,9 @@ function Competition({ group, open, onToggle, onSelect }) {
         <Chevron className={`comp-chev ${open ? 'open' : ''}`} />
       </button>
       {open && (
-        <ul className="matches">
-          {group.fixtures.map(f => <MatchRow key={f.fixture_id} f={f} onSelect={onSelect} />)}
-        </ul>
+        <div className="matches-grid">
+          {group.fixtures.map(f => <MatchTile key={f.fixture_id} f={f} onSelect={onSelect} />)}
+        </div>
       )}
     </section>
   )
@@ -358,6 +392,8 @@ function TopBar() {
 
 export default function App() {
   const [fixtures, setFixtures] = useState([])
+  const [filter, setFilter] = useState('all') // 'all', 'live', 'upcoming', 'ft'
+  const [oddsOnly, setOddsOnly] = useState(false)
   const [err, setErr] = useState(null)
   const [selected, setSelected] = useState(null)
   const [closed, setClosed] = useState(() => new Set())
@@ -374,8 +410,16 @@ export default function App() {
   }, [])
 
   const groups = useMemo(() => {
+    const filteredFixtures = fixtures.filter(f => {
+      if (oddsOnly && !f.has_odds) return false;
+      if (filter === 'live') return LIVE.has(f.status);
+      if (filter === 'upcoming') return f.status === 'NS' || f.status === 'TBD';
+      if (filter === 'ft') return FINISHED.has(f.status);
+      return true; // 'all'
+    });
+
     const by = new Map()
-    for (const f of fixtures) {
+    for (const f of filteredFixtures) {
       if (!by.has(f.league_id)) {
         by.set(f.league_id, { league_id: f.league_id, league: f.league, country: f.country,
                               flag: f.flag, league_logo: f.league_logo, fixtures: [] })
@@ -388,7 +432,7 @@ export default function App() {
       (RANK.get(a.league_id) ?? 999) - (RANK.get(b.league_id) ?? 999)
       || `${a.country} ${a.league}`.localeCompare(`${b.country} ${b.league}`))
     return out
-  }, [fixtures])
+  }, [fixtures, filter, oddsOnly])
 
   const toggle = id => setClosed(prev => {
     const next = new Set(prev)
@@ -398,6 +442,7 @@ export default function App() {
   })
 
   if (selected != null) {
+    const selectedFixture = fixtures.find(f => f.fixture_id === selected);
     return (
       <div className="app">
         <TopBar />
@@ -405,7 +450,7 @@ export default function App() {
           <button type="button" className="back" onClick={() => setSelected(null)}>
             <Chevron className="back-chev" /> Today's matches
           </button>
-          <MatchPanel fixtureId={selected} />
+          <MatchPanel fixtureId={selected} fixture={selectedFixture} />
         </main>
       </div>
     )
@@ -415,13 +460,28 @@ export default function App() {
     <div className="app">
       <TopBar />
       <main className="feed">
+        <div className="filter-bar">
+          <button className={`filter-btn ${filter === 'all' ? 'active' : ''}`} onClick={() => setFilter('all')}>All</button>
+          <button className={`filter-btn ${filter === 'live' ? 'active' : ''}`} onClick={() => setFilter('live')}>Live</button>
+          <button className={`filter-btn ${filter === 'upcoming' ? 'active' : ''}`} onClick={() => setFilter('upcoming')}>Upcoming</button>
+          <button className={`filter-btn ${filter === 'ft' ? 'active' : ''}`} onClick={() => setFilter('ft')}>Finished</button>
+        </div>
         {err && <p className="error">{err}</p>}
-        {!err && fixtures.length === 0 && <p className="muted">Loading today's matches…</p>}
+        {!err && groups.length === 0 && <p className="muted">No matches found for this filter.</p>}
         {groups.map(g => (
           <Competition key={g.league_id} group={g} open={!closed.has(g.league_id)}
                        onToggle={() => toggle(g.league_id)} onSelect={setSelected} />
         ))}
       </main>
+      
+      {!selected && (
+        <button 
+          className={`odds-toggle-btn ${oddsOnly ? 'active' : ''}`}
+          onClick={() => setOddsOnly(prev => !prev)}
+        >
+          % Odds Only
+        </button>
+      )}
     </div>
   )
 }

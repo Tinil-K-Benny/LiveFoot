@@ -59,6 +59,7 @@ def fixtures():
             'away_logo': f['teams']['away']['logo'],
             'h_goals': f['goals']['home'],
             'a_goals': f['goals']['away'],
+            'has_odds': bool(api_client.prematch_odds(f)),
         })
     return jsonify(out)
 
