@@ -1,7 +1,7 @@
 """Data-provider clients.
 
 API-Football (v3.football.api-sports.io), key from API_FOOTBALL_KEY, 100 req/day:
-- today's fixtures: cached to data/fixtures_<date>.json, 1 call/day
+- today's fixtures (local date): cached to data/fixtures_<date>.json, 1-2 calls/day
 - live matches: one `fixtures?live=all` call covers every live match; the
   10-minute TTL below caps upstream usage at ~6 calls/hour total
 - final result: 1 call per finished match (collector)
@@ -15,10 +15,12 @@ import json
 import os
 import sys
 import time
-from datetime import date
+from datetime import date, datetime, time as dtime, timedelta, timezone
 from pathlib import Path
 
 import requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 BASE = 'https://v3.football.api-sports.io'
 ODDS_BASE = 'https://api.the-odds-api.com/v4'
@@ -48,7 +50,7 @@ def _key(name):
 def _get(endpoint, params=None):
     key = _key('API_FOOTBALL_KEY')
     r = requests.get(f'{BASE}/{endpoint}', params=params,
-                     headers={'x-apisports-key': key}, timeout=15)
+                     headers={'x-apisports-key': key}, timeout=15, verify=False)
     r.raise_for_status()
     body = r.json()
     if body.get('errors'):
@@ -56,11 +58,24 @@ def _get(endpoint, params=None):
     return body['response']
 
 
+def local_day_utc_dates(day):
+    """(local midnight, next local midnight, the UTC dates that window touches)."""
+    start = datetime.combine(day, dtime.min).astimezone()
+    end = start + timedelta(days=1)
+    utc = sorted({start.astimezone(timezone.utc).date(),
+                  (end - timedelta(seconds=1)).astimezone(timezone.utc).date()})
+    return start, end, utc
+
+
 def todays_fixtures():
+    """Fixtures kicking off on today's LOCAL date. API-Football's `date` param
+    is a UTC date, so off UTC the local day spans two of them: fetch both, filter."""
     cache = DATA / f'fixtures_{date.today().isoformat()}.json'
     if cache.exists():
         return json.loads(cache.read_text(encoding='utf-8'))
-    fixtures = _get('fixtures', {'date': date.today().isoformat()})
+    start, end, utc_dates = local_day_utc_dates(date.today())
+    fixtures = [f for d in utc_dates for f in _get('fixtures', {'date': d.isoformat()})
+                if start <= datetime.fromisoformat(f['fixture']['date']) < end]
     DATA.mkdir(exist_ok=True)
     cache.write_text(json.dumps(fixtures), encoding='utf-8')
     return fixtures
@@ -88,7 +103,7 @@ def fixture_result(fixture_id):
 
 def _odds_get(path, **params):
     r = requests.get(f'{ODDS_BASE}/{path}',
-                     params={'apiKey': _key('ODDS_API_KEY'), **params}, timeout=15)
+                     params={'apiKey': _key('ODDS_API_KEY'), **params}, timeout=15, verify=False)
     r.raise_for_status()
     return r.json()
 
