@@ -20,7 +20,7 @@ def implied_probs(odds_h, odds_x, odds_a):
 
 
 def parse_odds(o):
-    """Sofascore 1X2 line {'1': '9/25', 'X': '15/4', '2': '13/2'} -> decimal
+    """Live-feed 1X2 line {'1': '9/25', 'X': '15/4', '2': '13/2'} -> decimal
     (h, x, a), or None. Used by training (v2 dataset rows) and serving (live)."""
     def dec(v):
         s = str(v).strip().upper()
@@ -62,7 +62,7 @@ NAN = float('nan')
 
 def stat_num(v):
     """'73%' -> 73, '45/68 (66%)' -> 45, '1.24' -> 1.24, 5 -> 5, junk -> NaN.
-    Training rows hold sofascore display strings, live API gives numbers."""
+    Training rows hold live-feed display strings, live API gives numbers."""
     if isinstance(v, (int, float)):
         return float(v)
     s = str(v or '').strip()

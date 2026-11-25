@@ -118,6 +118,7 @@ graph TD
 - API keys:
   - **API_FOOTBALL_KEY** from [API-Football](https://www.api-football.com/) (the free plan works)
   - **ODDS_API_KEY** from [The Odds API](https://the-odds-api.com/)
+- Optional: **LIVE_FEED_URL**, the site root of the free live score feed, set as an environment variable or in a `.env` file at the project root (gitignored). Without it, live data comes from API-Football alone.
 
 ```bash
 # Windows

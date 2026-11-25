@@ -1,13 +1,15 @@
-"""Sofascore live data (free, no key) — the serving-side source for live
+"""Live feed data (free, no key) — the serving-side source for live
 score/minute/cards/stats.
 
 One live-feed call covers every live match worldwide; per-match statistics
 are fetched on demand, only for the match a user opens.
 """
 import difflib
+import os
 import threading
 import time
 from datetime import datetime
+from pathlib import Path
 
 from curl_cffi import requests as curl
 
@@ -15,12 +17,29 @@ from app.features import parse_odds
 
 LIVE_TTL = 60  # one live-feed call covers every match, so at most 1/min however many users
 STATS_TTL = 480  # per-match stats: the open match page re-polls every 8 min
-BASE = 'https://www.sofascore.com/api/v1'
+
+
+def _feed_root():
+    """LIVE_FEED_URL (the feed's site root) from the environment, else from the
+    gitignored .env at the project root. Unset -> '' and every request fails,
+    so the server falls back to the API-Football backup."""
+    url = os.environ.get('LIVE_FEED_URL', '')
+    env = Path(__file__).resolve().parents[1] / '.env'
+    if not url and env.exists():
+        for line in env.read_text(encoding='utf-8').splitlines():
+            key, _, val = line.partition('=')
+            if key.strip() == 'LIVE_FEED_URL':
+                url = val.strip().strip('"' + "'")
+    return url.rstrip('/')
+
+
+FEED_ROOT = _feed_root()
+BASE = f'{FEED_ROOT}/api/v1'
 # UA / sec-ch-ua left to curl_cffi so they match the TLS fingerprint
 HEADERS = {
     'accept': '*/*',
     'accept-language': 'en-US,en;q=0.6',
-    'referer': 'https://www.sofascore.com/',
+    'referer': f'{FEED_ROOT}/',
     'sec-fetch-dest': 'empty',
     'sec-fetch-mode': 'cors',
     'sec-fetch-site': 'same-origin',
@@ -34,12 +53,14 @@ _profile = [0]
 _session = curl.Session()
 
 
-MIN_GAP = 2.0  # seconds between any two sofascore requests, so clicks/tabs never burst
+MIN_GAP = 2.0  # seconds between any two live-feed requests, so clicks/tabs never burst
 _lock = threading.Lock()
 _last = [0.0]
 
 
 def _get(path):
+    if not FEED_ROOT:
+        raise RuntimeError('LIVE_FEED_URL is not set (environment or .env)')
     with _lock:  # one request in flight at a time, spaced MIN_GAP apart (retries too)
         for _ in IMPERSONATE_PROFILES:
             wait = MIN_GAP - (time.time() - _last[0])
@@ -80,7 +101,7 @@ _map_cache = {'t': -1.0, 'map': {}}
 
 
 def map_to_fixtures(fixtures):
-    """{api-football fixture_id: sofascore live event}. Candidates are limited
+    """{api-football fixture_id: live-feed event}. Candidates are limited
     to kickoffs within 30 min of the event start, then matched by team-name
     similarity (same 1.2 threshold as the odds matcher). Cached per live-feed
     refresh."""
@@ -161,7 +182,7 @@ _odds_cache = {}  # event_id -> (fetched_at, odds or None)
 
 
 def prematch_odds(event_id):
-    """Opening 1X2 line as decimal (h, x, a), or None. Sofascore keeps it
+    """Opening 1X2 line as decimal (h, x, a), or None. The feed keeps it
     during the match (the frozen initialFractionalValue) and it's the line v2
     was trained on. One call per match: a found line is cached for good, a
     miss or error is retried at most every STATS_TTL."""
@@ -181,7 +202,7 @@ def prematch_odds(event_id):
     return odds
 
 
-# Sofascore status description -> API-Football short code (what the frontend keys off)
+# Live-feed status description -> API-Football short code (what the frontend keys off)
 _STATUS = {'1st half': '1H', 'Halftime': 'HT', '2nd half': '2H',
            'Extra time': 'ET', 'Awaiting extra time': 'BT',
            'Awaiting penalties': 'BT', 'Penalties': 'P', 'Ended': 'FT'}
@@ -219,7 +240,7 @@ def _int_stat(stats, key, side):
 
 
 def match_state(ev):
-    """Flatten a sofascore live event into training-style counts.
+    """Flatten a live-feed event into training-style counts.
     Cards come from the statistics endpoint; matches without stats coverage
     report 0 cards (goals/minute stay correct)."""
     stats = statistics(ev['id'])
@@ -237,7 +258,7 @@ def match_state(ev):
     }
 
 
-# sofascore stat key -> the h_/a_ suffix the frontend's Stats section expects
+# live-feed stat key -> the h_/a_ suffix the frontend's Stats section expects
 _DISPLAY = {'ballPossession': 'ball_possession', 'totalShotsOnGoal': 'total_shots',
             'shotsOnGoal': 'shots_on_goal', 'expectedGoals': 'expected_goals',
             'cornerKicks': 'corner_kicks', 'fouls': 'fouls'}
@@ -267,6 +288,7 @@ if __name__ == '__main__':  # offline self-check: clock math + card parsing + ma
     st = match_state(ev)
     assert (st['h_yellows'], st['a_yellows'], st['h_reds'], st['a_reds']) == (3, 1, 0, 0)
     assert st['h_goals'] == 2 and st['minute'] == 65
+    FEED_ROOT = 'https://feed.test'  # requests are faked below
     _last[0] = 0.0  # throttle: three back-to-back calls take >= 2 * MIN_GAP
     _session.get = lambda *a, **k: type('R', (), {'status_code': 200, 'raise_for_status': lambda s: None, 'json': lambda s: {}})()
     t0 = time.time()

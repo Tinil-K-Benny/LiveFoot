@@ -3,9 +3,9 @@
     python app/server.py            # http://localhost:5000
 
 GET /api/fixtures          today's fixtures (API-Football, 1 call/day) with live
-                           score/minute overlaid from sofascore's free feed
+                           score/minute overlaid from the free live feed
 GET /api/live/<fixture_id> live state + model probabilities + history; all live
-                           data (score, clock, cards, stats) comes from sofascore
+                           data (score, clock, cards, stats) comes from the live feed
 """
 import sys
 import time
@@ -59,8 +59,8 @@ def api_error(e):
     return jsonify({'error': str(e)}), 502
 
 
-# API-Football stat name (flattened) -> the sofascore key model v2 reads
-API_TO_SOFA = {'shotsOnGoal': 'shots_on_goal', 'totalShotsOnGoal': 'total_shots',
+# API-Football stat name (flattened) -> the live-feed key model v2 reads
+API_TO_FEED = {'shotsOnGoal': 'shots_on_goal', 'totalShotsOnGoal': 'total_shots',
                'cornerKicks': 'corner_kicks'}
 
 
@@ -75,7 +75,7 @@ def cached_status(fx):
     """The daily fixture cache freezes whatever status a match had when it was
     fetched. Called only when no live feed has the match: still in play 130
     min after kick-off (a 90-min match ends by ~115) means it has finished.
-    ponytail: the score stays the cached one; a sofascore by-date call would give finals."""
+    ponytail: the score stays the cached one; a live-feed by-date call would give finals."""
     s = fx['fixture']['status']['short']
     started = datetime.fromisoformat(fx['fixture']['date']).timestamp()
     return 'FT' if s in IN_PLAY and time.time() - started > 130 * 60 else s
@@ -83,7 +83,7 @@ def cached_status(fx):
 
 def api_live():
     """Backup live feed (API-Football, free plan): {fixture_id: live fixture}.
-    One call covers every match, 10-min cached, only used when sofascore fails."""
+    One call covers every match, 10-min cached, only used when the live feed fails."""
     try:
         return {f['fixture']['id']: f for f in api_client.live_matches()}
     except Exception:
@@ -94,7 +94,7 @@ def api_live():
 def fixtures():
     fxs = api_client.todays_fixtures()
     live, backup = {}, {}
-    try:  # the daily fixture cache goes stale; overlay sofascore's free live feed
+    try:  # the daily fixture cache goes stale; overlay the free live feed
         live = live_feed.map_to_fixtures(fxs)
     except Exception:
         backup = api_live()
@@ -142,7 +142,7 @@ def live(fixture_id):
         stats = live_feed.display_stats(ev['id'])
         stream = live_feed.timeline(ev['id'])
     elif fx['fixture']['status']['short'] != 'NS' or kicked_off(fx):
-        lf = api_live().get(fixture_id)  # sofascore down or doesn't cover it: API-Football backup
+        lf = api_live().get(fixture_id)  # live feed down or doesn't cover it: API-Football backup
         if lf is not None:
             state = api_client.match_state(lf)
             stream = api_client.event_stream(lf)
@@ -166,18 +166,18 @@ def live(fixture_id):
     state.update(fixture_id=fixture_id,
                  home=fx['teams']['home']['name'], away=fx['teams']['away']['name'])
     if stats is None:
-        try:  # sofascore down / no coverage: 1 api-football call per match, 10-min cached
+        try:  # live feed down / no coverage: 1 api-football call per match, 10-min cached
             stats = api_client.fixture_statistics(fx)['flat'] or None
-            if stats:  # its card counts also beat the 0s sofascore reported
+            if stats:  # its card counts also beat the 0s the live feed reported
                 for sk, fk in (('h_yellows', 'h_yellow_cards'), ('a_yellows', 'a_yellow_cards'),
                                ('h_reds', 'h_red_cards'), ('a_reds', 'a_red_cards')):
                     state[sk] = int(stats.get(fk) or 0)
-                if not model_stats:  # the model reads sofascore keys
+                if not model_stats:  # the model reads live-feed keys
                     model_stats = {sk: {'home': stats.get(f'h_{ak}'), 'away': stats.get(f'a_{ak}')}
-                                   for sk, ak in API_TO_SOFA.items()}
+                                   for sk, ak in API_TO_FEED.items()}
         except Exception:
             pass
-    # sofascore's opening line (v2's training source, still served mid-match),
+    # the live feed's opening line (v2's training source, still served mid-match),
     # else The Odds API's pre-kickoff cache; None -> v2 uses its no-odds base
     odds = (live_feed.prematch_odds(ev['id']) if ev is not None else None) \
         or api_client.prematch_odds(fx)
