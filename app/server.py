@@ -35,6 +35,13 @@ def probs_dict(p):
     return {c.lower(): round(float(v), 4) for c, v in zip(CLASSES, p)}
 
 
+def likely_scores(X, h_goals, a_goals):
+    """Top final scorelines for the single-row feature frame X."""
+    more_h, more_a = (float(v[0]) for v in goals_to_come(SCORE, X))
+    return [{'home': h, 'away': a, 'p': round(p, 4)}
+            for h, a, p in scorelines(h_goals, a_goals, more_h, more_a)]
+
+
 def history_curve(stream, state, odds, now_probs):
     """Win probability for every minute so far, rebuilt from the goal/card
     timeline on each request, so every match has a full chart whether or not
@@ -153,13 +160,17 @@ def live(fixture_id):
         if odds:
             p = implied_probs(*odds)
             probs = {'home': round(p[0], 4), 'draw': round(p[1], 4), 'away': round(p[2], 4)}
+        status = cached_status(fx)
+        scores = None
+        if status in ('NS', 'TBD'):  # minute 0, no stats: odds (or the no-odds base) set the goal rates
+            scores = likely_scores(pd.DataFrame([build_features_v2(0, 0, 0, 0, 0, 0, 0, None, odds)]), 0, 0)
         return jsonify({
             'prematch': True, 'fixture_id': fixture_id,
             'home': fx['teams']['home']['name'], 'away': fx['teams']['away']['name'],
-            'status': cached_status(fx), 'kickoff': fx['fixture']['date'],
+            'status': status, 'kickoff': fx['fixture']['date'],
             'h_goals': fx['goals']['home'], 'a_goals': fx['goals']['away'],
             'odds': odds and {'home': odds[0], 'draw': odds[1], 'away': odds[2]},
-            'probs': probs,
+            'probs': probs, 'scores': scores,
         })
 
     # names/id from api-football so they match the fixtures list exactly
@@ -188,9 +199,7 @@ def live(fixture_id):
                               state['h_reds'], state['a_reds'], model_stats, odds)
     X = pd.DataFrame([feats])
     probs = probs_dict(predict_v2(BUNDLE, X)[0])
-    more_h, more_a = (float(v[0]) for v in goals_to_come(SCORE, X))
-    scores = [{'home': h, 'away': a, 'p': round(p, 4)}
-              for h, a, p in scorelines(state['h_goals'], state['a_goals'], more_h, more_a)]
+    scores = likely_scores(X, state['h_goals'], state['a_goals'])
 
     pre = None  # market-implied, for the "change since kick-off" deltas
     if odds:

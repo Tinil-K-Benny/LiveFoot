@@ -480,7 +480,8 @@ function Prematch({ data, fixture }) {
             cards, shots and corners. Expect it to be less sure early on than for matches with odds.</p>
         </section>
       )}
-{!FINISHED.has(data.status) && (
+      {data.scores?.length > 0 && <FinalScore scores={data.scores} />}
+      {!FINISHED.has(data.status) && (
         <section className="panel kickoff-strip">
           <span className="h3">Live predictions start at kick-off</span>
           <span className="muted small">This page updates every {MATCH_POLL_MIN} minutes during the match.</span>

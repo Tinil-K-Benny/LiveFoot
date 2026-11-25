@@ -1,12 +1,12 @@
 # Live Football Prediction Model
 
-A full-stack machine learning app that predicts football matches while they are being played. For every live match it gives the chance of a home win, a draw or an away win, how that chance has moved since kick-off, and the most likely final scores. Predictions start from the pre-match betting odds and update on the score, cards, shots, shots on target and corners. A dark-themed React app shows it all.
+A full-stack machine learning app that predicts football matches while they are being played. For every live match it gives the chance of a home win, a draw or an away win, how that chance has moved since kick-off, and the most likely final scores. Upcoming matches get likely final scores too. Predictions start from the pre-match betting odds and update on the score, cards, shots, shots on target and corners. A dark-themed React app shows it all.
 
 ## 🆕 What's New in v2
 
 - **Model v2**: live shots, shots on target and corners now adjust the prediction. v2 beats v1 on the holdout (log-loss 0.678 vs 0.684), with lower log-loss in every 15-minute bucket.
 - **Predictions without odds**: matches in leagues with no betting market now get live predictions too.
-- **Likely final score**: a new model predicts how many more goals each side will score and shows the most likely final scorelines.
+- **Likely final score**: a new model predicts how many more goals each side will score and shows the most likely final scorelines, for live matches and for matches that haven't kicked off yet.
 - **Full probability chart for every match**: the history is rebuilt from the goal and card timeline, so the chart covers the whole match even if nobody had the page open.
 - **Redesigned UI**: dark theme with a pitch background.
   - The home screen shows only score, time and status.
@@ -66,6 +66,7 @@ A **Flask** server:
   - team stats
   - the most likely final scores
   - the probability history
+- For a match that hasn't started, `/api/live/<fixture_id>` returns the pre-match market odds and the most likely final scores. These come from the score model at minute 0, using the odds when the league has them.
 - The probability history is **rebuilt from the match's goal and card timeline on every request**. Every match gets a full chart from kick-off, even if nobody had it open.
 - If the main live feed is unavailable, API-Football's live endpoint is the backup.
 
@@ -80,6 +81,7 @@ A **React + Vite** app with a dark theme.
   - a probability-over-time chart with goal markers
   - a **Likely final score** panel
   - team stats, with the better number highlighted
+- **Upcoming match page**: what the market expects (odds with the bookmaker margin removed) and the likely final score before kick-off.
 - **Polling**: the match list refreshes every 10 minutes. The open match refreshes every 8 minutes. Detailed stats are only fetched for the match the user opens.
 
 ---
@@ -104,7 +106,7 @@ graph TD
 
 - **Live win probabilities** that react to goals, cards, shots, shots on target and corners, starting from the pre-match odds.
 - **Works without odds**: lower-league matches with no betting market still get predictions.
-- **Likely final score**: the most likely scorelines, with their chances.
+- **Likely final score**: the most likely scorelines with their chances, before kick-off and during the match.
 - **Full probability chart for every match**: rebuilt from the timeline, so nobody needs to keep a page open.
 - **Light on APIs**: fixtures are cached daily, stats are fetched only for opened matches, and requests are spaced out and cached. This keeps usage within free tiers: 100 requests/day for API-Football and 500 requests/month for The Odds API.
 
