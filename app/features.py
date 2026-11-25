@@ -80,7 +80,7 @@ FEATURE_NAMES_V2 = FEATURE_NAMES + [f'{s}_{k}' for k in STAT_KEYS for s in 'ha']
 
 def build_features_v2(minute, h_goals, a_goals, h_yellows, a_yellows, h_reds, a_reds,
                       stats, odds=None):
-    """stats: flat {key: {'home': v, 'away': v}} (sofascore.statistics format).
+    """stats: flat {key: {'home': v, 'away': v}} (live_feed.statistics format).
     odds: (dec_h, dec_x, dec_a) or None -> NaN probs (selects the no-odds base)."""
     f = build_features(minute, h_goals, a_goals, h_yellows, a_yellows, h_reds, a_reds,
                        *(odds or (2, 2, 2)))

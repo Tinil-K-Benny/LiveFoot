@@ -282,4 +282,4 @@ if __name__ == '__main__':  # offline self-check: clock math + card parsing + ma
     _get('y')
     assert tried == ['safari184', 'safari180', 'safari180'], tried
     assert _similar('Arsenal', 'Arsenal FC') + _similar('Chelsea', 'Chelsea') > 1.2
-    print('sofascore.py self-check ok')
+    print('live_feed.py self-check ok')

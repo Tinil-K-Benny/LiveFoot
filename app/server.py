@@ -19,7 +19,7 @@ from flask_cors import CORS
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
-from app import api_client, sofascore  # noqa: E402
+from app import api_client, live_feed  # noqa: E402
 from app.features import (build_features_v2, goals_to_come, implied_probs,  # noqa: E402
                           predict_v2, scorelines)
 
@@ -95,7 +95,7 @@ def fixtures():
     fxs = api_client.todays_fixtures()
     live, backup = {}, {}
     try:  # the daily fixture cache goes stale; overlay sofascore's free live feed
-        live = sofascore.map_to_fixtures(fxs)
+        live = live_feed.map_to_fixtures(fxs)
     except Exception:
         backup = api_live()
     out = []
@@ -106,9 +106,9 @@ def fixtures():
         out.append({
             'fixture_id': f['fixture']['id'],
             'kickoff': f['fixture']['date'],
-            'status': (sofascore.short_status(ev) if ev
+            'status': (live_feed.short_status(ev) if ev
                        else f['fixture']['status']['short'] if fresh else cached_status(f)),
-            'minute': sofascore.minute(ev) if ev else f['fixture']['status'].get('elapsed'),
+            'minute': live_feed.minute(ev) if ev else f['fixture']['status'].get('elapsed'),
             'league_id': f['league']['id'],
             'league': f['league']['name'],
             'country': f['league']['country'],
@@ -133,14 +133,14 @@ def live(fixture_id):
     state = model_stats = stats = None
     stream = []  # goal/card timeline for the chart
     try:
-        ev = sofascore.map_to_fixtures(fxs).get(fixture_id)
+        ev = live_feed.map_to_fixtures(fxs).get(fixture_id)
     except Exception:
         ev = None
     if ev is not None:
-        state = sofascore.match_state(ev)
-        model_stats = sofascore.statistics(ev['id'])
-        stats = sofascore.display_stats(ev['id'])
-        stream = sofascore.timeline(ev['id'])
+        state = live_feed.match_state(ev)
+        model_stats = live_feed.statistics(ev['id'])
+        stats = live_feed.display_stats(ev['id'])
+        stream = live_feed.timeline(ev['id'])
     elif fx['fixture']['status']['short'] != 'NS' or kicked_off(fx):
         lf = api_live().get(fixture_id)  # sofascore down or doesn't cover it: API-Football backup
         if lf is not None:
@@ -179,7 +179,7 @@ def live(fixture_id):
             pass
     # sofascore's opening line (v2's training source, still served mid-match),
     # else The Odds API's pre-kickoff cache; None -> v2 uses its no-odds base
-    odds = (sofascore.prematch_odds(ev['id']) if ev is not None else None) \
+    odds = (live_feed.prematch_odds(ev['id']) if ev is not None else None) \
         or api_client.prematch_odds(fx)
 
     # model saw minutes 0-90 in training; extra time must not extrapolate

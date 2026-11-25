@@ -66,7 +66,7 @@ def match_rows(path):
             return []  # snapshot score past the final score: corrupt match, drop it
         stats = r.get('stats') if isinstance(r.get('stats'), dict) else {}
 
-        def card(key, side):  # absent card stat = 0, same as sofascore.match_state
+        def card(key, side):  # absent card stat = 0, same as live_feed.match_state
             v = stat_num((stats.get(key) or {}).get(side))
             return 0.0 if v != v else v
         f = build_features_v2(m, h, a, card('yellowCards', 'home'), card('yellowCards', 'away'),
